@@ -10,7 +10,11 @@ class Museum:
 		self.name = name
 		self.uuid = uuid
 		self.check = check
+		self.current_exhibits = []
 		self.future_exhibits = []
+		
+	def add_current_exhibits(self, exhibits):
+		self.current_exhibits.append(exhibits)
 		
 	def add_future_exhibits(self, exhibits):
 		self.future_exhibits.append(exhibits)
@@ -30,11 +34,13 @@ class Exhibit:
 	def __repr__(self):
 	    return str(self)
 	
-def query_museum_upcoming(museum_uuid) -> list:
+def query_museum_upcoming(museum_uuid, future -> bool) -> list: #TODO: Convert to general queryer with option for upcoming or not 
 	with Stealth().use_sync(sync_playwright()) as p:
 		browser = p.chromium.launch()
 		page = browser.new_page()
-		page.goto(f'https://www.si.edu/exhibitions/upcoming?edan_fq[0]=p.event.location.extended.location_id:"p1b-1474716020541-{museum_uuid}-0"')
+		
+		upcoming = "/upcoming" if future else ""
+		page.goto(f'https://www.si.edu/exhibitions{upcoming}?edan_fq[0]=p.event.location.extended.location_id:"p1b-1474716020541-{museum_uuid}-0"')
 		page.wait_for_selector(".c-exhibition-teaser__inner-wrap", timeout=15000)
 		soup = BeautifulSoup(page.content(), "html.parser")
 		browser.close()
@@ -75,16 +81,32 @@ def setup_museums() -> list:
 	Museum("National Zoo", 1475756003109),
 	Museum("Anacostia Community Museum", 1475753666790),
 	Museum("Smithsonian Gardens", 1475756802542)]
-
-def main():
-	museums = setup_museums()
+	
+def upcoming(museums -> list):
 	for museum in museums:
 		if museum.check:
 			try:
-				museum.add_future_exhibits(query_museum_upcoming(museum.uuid))
+				museum.add_future_exhibits(query_museum_upcoming(museum.uuid), True)
 				time.sleep(1)
 			except:
 				pass #TODO: Add logging for the except case when a museum returns no results
+				
+def this_week(museums -> list):
+	for museum in museums:
+		if museum.check:
+			try:
+				museum.add_current_exhibits(query_museum_upcoming(museum.uuid), False)
+				time.sleep(1)
+			except:
+				pass #TODO: Add logging for the except case when a museum returns no results	
+
+
+def main():
+	# General setup.
+	museums = setup_museums()
+	
+	# Command-specific logic.
+	upcoming(museums)
 				
 
 if __name__ == "__main__":
