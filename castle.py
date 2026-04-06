@@ -5,6 +5,8 @@ import argparse
 from datetime import datetime
 import sys
 import time
+import json
+import os
 	
 class Museum:
 	def __init__(self, name, uuid, check=True):
@@ -37,7 +39,7 @@ class Exhibit:
 	
 def is_valid_date(date_str: str) -> bool:
 	try:
-		datetime.strptime(date_str, "%m %d, %Y")
+		datetime.strptime(date_str, "%B %d, %Y")
 		return True
 	except ValueError:
 		return False
@@ -49,7 +51,7 @@ def query_museum_exhibits(museum_uuid, future: bool) -> list: #TODO: Convert to 
 		
 		upcoming = "/upcoming" if future else ""
 		page.goto(f'https://www.si.edu/exhibitions{upcoming}?edan_fq[0]=p.event.location.extended.location_id:"p1b-1474716020541-{museum_uuid}-0"')
-		page.wait_for_selector(".c-exhibition-teaser__inner-wrap", timeout=15000)
+		page.locator(".c-exhibition-teaser__inner-wrap").first.wait_for(timeout=30000)
 		soup = BeautifulSoup(page.content(), "html.parser")
 		browser.close()
 		
@@ -58,15 +60,16 @@ def query_museum_exhibits(museum_uuid, future: bool) -> list: #TODO: Convert to 
 	for item in soup.select(".c-exhibition-teaser__inner-wrap"):
 		title = item.select_one(".c-exhibition-teaser__title-link .text").get_text(strip=True)
 		date = item.select_one(".c-exhibition-teaser__date").get_text(strip=True)
-		dates = date.split("–")
+		dates = date.split("–") if "–" in date else date.split("Through")
 
 		# Clean up dates
 		dates = [item.strip() for item in dates]
 		dates = [" ".join(item.split()) for item in dates]
 		
-		to_date = datetime.strptime(dates[1], "%m %d, %Y") if is_valid_date(dates[1]) else dates[1]
+		from_date = datetime.strptime(dates[0], "%B %d, %Y") if is_valid_date(dates[0]) else dates[0]
+		to_date = datetime.strptime(dates[1], "%B %d, %Y") if is_valid_date(dates[1]) else dates[1]
 
-		exhibits.append(Exhibit(title, datetime.strptime(dates[0], "%m %d, %Y"), to_date)) #TODO: Account for "Permanent" and "Indefinitely"
+		exhibits.append(Exhibit(title, from_date, to_date))
 		
 	return exhibits
 
@@ -92,16 +95,38 @@ def setup_museums() -> list:
 	Museum("Anacostia Community Museum", 1475753666790),
 	Museum("Smithsonian Gardens", 1475756802542)]
 	
+UPCOMING_CACHE = os.path.expanduser("~/.local/share/castle/upcoming.json")
+
 def upcoming(museums: list):
 	for museum in museums:
 		if museum.check:
 			try:
 				museum.add_future_exhibits(query_museum_exhibits(museum.uuid, True))
 				time.sleep(1)
-			except:
-				pass #TODO: Add logging for the except case when a museum returns no results
-				
-	# Compare to stored values.
+			except Exception as e:
+				print(f"  {museum.name}: {e}")
+
+	
+	# Load previously known exhibits
+	known = {}
+	if os.path.exists(UPCOMING_CACHE):
+		with open(UPCOMING_CACHE) as f:
+			known = json.load(f)
+			
+	# Alert on new exhibits
+	for museum in museums:
+		new = [e for e in museum.future_exhibits[0] if e.name not in known.get(museum.name, [])] if museum.future_exhibits else []
+		if new:
+			print(museum.name)
+			for e in new:
+				from_str = e.from_date.strftime("%B %d, %Y") if isinstance(e.from_date, datetime) else e.from_date
+				to_str = e.to_date.strftime("%B %d, %Y") if isinstance(e.to_date, datetime) else e.to_date
+				print(f"  {e.name} ({from_str} - {to_str})")
+
+	# Overwrite cache with current run
+	os.makedirs(os.path.dirname(UPCOMING_CACHE), exist_ok=True)
+	with open(UPCOMING_CACHE, "w") as f:
+		json.dump({m.name: [e.name for e in m.future_exhibits[0]] for m in museums if m.future_exhibits}, f, indent=2)
 				
 def is_within_period(target_date):
 	today = date.today()
@@ -148,7 +173,7 @@ def main():
 	parser_week = subparsers.add_parser('week', help="Exhibits opening or closing in the next 7 days")
 	parser_week.set_defaults(func=this_week)
 
-	parser_upcoming = subparsers.add_parser('upcoming', help="Newly announced upcoming exhibits")
+	parser_upcoming = subparsers.add_parser('upcoming', help="Prints only upcoming exhibits that have been announced since its last invocation. Note, will print all upcoming on first invocation.")
 	parser_upcoming.set_defaults(func=upcoming)
 
 	args = parser.parse_args()
