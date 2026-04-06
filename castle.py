@@ -1,8 +1,9 @@
 from playwright.sync_api import sync_playwright
 from playwright_stealth.stealth import Stealth
 from bs4 import BeautifulSoup
+import argparse
+from datetime import datetime
 import sys
-from enum import Enum
 import time
 	
 class Museum:
@@ -32,9 +33,16 @@ class Exhibit:
 		return f"{self.name}: ({self.from_date} - {self.to_date})"
 		
 	def __repr__(self):
-	    return str(self)
+		return str(self)
 	
-def query_museum_upcoming(museum_uuid, future -> bool) -> list: #TODO: Convert to general queryer with option for upcoming or not 
+def is_valid_date(date_str: str) -> bool:
+	try:
+		datetime.strptime(date_str, "%m %d, %Y")
+		return True
+	except ValueError:
+		return False
+
+def query_museum_exhibits(museum_uuid, future: bool) -> list: #TODO: Convert to general queryer with option for upcoming or not 
 	with Stealth().use_sync(sync_playwright()) as p:
 		browser = p.chromium.launch()
 		page = browser.new_page()
@@ -55,8 +63,10 @@ def query_museum_upcoming(museum_uuid, future -> bool) -> list: #TODO: Convert t
 		# Clean up dates
 		dates = [item.strip() for item in dates]
 		dates = [" ".join(item.split()) for item in dates]
+		
+		to_date = datetime.strptime(dates[1], "%m %d, %Y") if is_valid_date(dates[1]) else dates[1]
 
-		exhibits.append(Exhibit(title, dates[0], dates[1]))
+		exhibits.append(Exhibit(title, datetime.strptime(dates[0], "%m %d, %Y"), to_date)) #TODO: Account for "Permanent" and "Indefinitely"
 		
 	return exhibits
 
@@ -82,35 +92,70 @@ def setup_museums() -> list:
 	Museum("Anacostia Community Museum", 1475753666790),
 	Museum("Smithsonian Gardens", 1475756802542)]
 	
-def upcoming(museums -> list):
+def upcoming(museums: list):
 	for museum in museums:
 		if museum.check:
 			try:
-				museum.add_future_exhibits(query_museum_upcoming(museum.uuid), True)
+				museum.add_future_exhibits(query_museum_exhibits(museum.uuid, True))
 				time.sleep(1)
 			except:
 				pass #TODO: Add logging for the except case when a museum returns no results
 				
-def this_week(museums -> list):
+	# Compare to stored values.
+				
+def is_within_period(target_date):
+	today = date.today()
+	future_limit = today + timedelta(days=7)
+	
+	# Returns True if the date is today or up to 7 days in the future
+	return today <= target_date <= future_limit
+
+def this_week(museums: list):
 	for museum in museums:
 		if museum.check:
 			try:
-				museum.add_current_exhibits(query_museum_upcoming(museum.uuid), False)
+				museum.add_future_exhibits(query_museum_exhibits(museum.uuid, True))
+				museum.add_current_exhibits(query_museum_exhibits(museum.uuid, False))
 				time.sleep(1)
 			except:
-				pass #TODO: Add logging for the except case when a museum returns no results	
+				pass #TODO: Add logging for the except case when a museum returns no results
+				
+	print("OPENING THIS WEEK")
+	
+	for museum in museums:
+		if museum.check:
+			print(f"{museum}:")
+			for exhibit in museum.future_exhibits:
+				if is_within_period(exhibit.from_date):
+					print(f"{exhibit.name} starts on {exhibit.from_date}")
+	
+	print("CLOSING THIS WEEK")
+	for museum in museums:
+		if museum.check:
+			print(f"{museum}:")
+			for exhibit in museum.future_exhibits:
+				if exhibit.to_date == "Indefinitely" or exhibit.to_date == "Permanent":
+					pass
+				if is_within_period(exhibit.to_date):
+					print(f"{exhibit.name} closes on {exhibit.to_date}")
 
 
 def main():
 	# General setup.
-	museums = setup_museums()
+	parser = argparse.ArgumentParser()
+	subparsers = parser.add_subparsers(title='SUBCOMMANDS', required=True)
 	
-	# Command-specific logic.
-	upcoming(museums)
-				
+	parser_week = subparsers.add_parser('week', help="Exhibits opening or closing in the next 7 days")
+	parser_week.set_defaults(func=this_week)
+
+	parser_upcoming = subparsers.add_parser('upcoming', help="Newly announced upcoming exhibits")
+	parser_upcoming.set_defaults(func=upcoming)
+
+	args = parser.parse_args()
+
+	museums = setup_museums()
+
+	args.func(museums)	
 
 if __name__ == "__main__":
-    sys.exit(main())
-
-# Current exhibitions URL for ref:
-# https://www.si.edu/exhibitions?edan_fq%5B0%5D=p.event.location.extended.location_id%3A%22p1b-1474716020541-1475754763122-0%22
+	sys.exit(main())
