@@ -129,14 +129,11 @@ def upcoming(museums: list):
 	with open(UPCOMING_CACHE, "w") as f:
 		json.dump(known, f, indent=2)
 				
-def is_within_period(target_date):
+def is_within_period(target_date, days):
 	today = date.today()
-	future_limit = today + timedelta(days=7)
-	
-	# Returns True if the date is today or up to 7 days in the future
-	return today <= target_date <= future_limit
+	return today <= target_date <= today + timedelta(days=days)
 
-def this_week(museums: list):
+def this_week(museums: list, days):
 	for museum in museums:
 		if museum.check:
 			try:
@@ -152,7 +149,7 @@ def this_week(museums: list):
 		if museum.check:
 			print(f"{museum}:")
 			for exhibit in museum.future_exhibits:
-				if is_within_period(exhibit.from_date):
+				if is_within_period(exhibit.from_date, days):
 					print(f"{exhibit.name} starts on {exhibit.from_date}")
 	
 	print("CLOSING THIS WEEK")
@@ -162,7 +159,7 @@ def this_week(museums: list):
 			for exhibit in museum.future_exhibits:
 				if exhibit.to_date == "Indefinitely" or exhibit.to_date == "Permanent":
 					pass
-				if is_within_period(exhibit.to_date):
+				if is_within_period(exhibit.to_date, days):
 					print(f"{exhibit.name} closes on {exhibit.to_date}")
 
 
@@ -171,8 +168,9 @@ def main():
 	parser = argparse.ArgumentParser()
 	subparsers = parser.add_subparsers(title='SUBCOMMANDS', required=True)
 	
-	parser_week = subparsers.add_parser('soon', help="Exhibits opening or closing in the next 7 days")
-	parser_week.set_defaults(func=this_week)
+	parser_week = subparsers.add_parser('soon', help="Exhibits opening or closing in the next specified (default: 7) days")
+	parser_week.add_argument('-d', '--days', help="Number of days to look forward for opening/closing exhibits", default=7, type=int)
+	parser_week.set_defaults(func=this_week, subcommand='soon')
 
 	parser_upcoming = subparsers.add_parser('upcoming', help="Prints only upcoming exhibits that have been announced since its last invocation. Note, will print all upcoming on first invocation.")
 	parser_upcoming.set_defaults(func=upcoming)
@@ -181,7 +179,10 @@ def main():
 
 	museums = setup_museums()
 
-	args.func(museums)	
+	if args.subcommand == 'soon':
+		args.func(museums, args.days)
+	else:
+		args.func(museums)
 
 if __name__ == "__main__":
 	sys.exit(main())
