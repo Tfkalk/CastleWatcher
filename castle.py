@@ -170,7 +170,7 @@ def main():
 	parser = argparse.ArgumentParser()
 	subparsers = parser.add_subparsers(title='SUBCOMMANDS', required=True)
 	
-	parser_week = subparsers.add_parser('week', help="Exhibits opening or closing in the next 7 days")
+	parser_week = subparsers.add_parser('soon', help="Exhibits opening or closing in the next 7 days")
 	parser_week.set_defaults(func=this_week)
 
 	parser_upcoming = subparsers.add_parser('upcoming', help="Prints only upcoming exhibits that have been announced since its last invocation. Note, will print all upcoming on first invocation.")
