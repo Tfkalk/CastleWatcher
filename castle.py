@@ -123,10 +123,11 @@ def upcoming(museums: list):
 				to_str = e.to_date.strftime("%B %d, %Y") if isinstance(e.to_date, datetime) else e.to_date
 				print(f"  {e.name} ({from_str} - {to_str})")
 
-	# Overwrite cache with current run
+	# Update cache: only overwrite values for museums checked this run
 	os.makedirs(os.path.dirname(UPCOMING_CACHE), exist_ok=True)
+	known.update({m.name: [e.name for e in m.future_exhibits[0]] for m in museums if m.future_exhibits})
 	with open(UPCOMING_CACHE, "w") as f:
-		json.dump({m.name: [e.name for e in m.future_exhibits[0]] for m in museums if m.future_exhibits}, f, indent=2)
+		json.dump(known, f, indent=2)
 				
 def is_within_period(target_date):
 	today = date.today()
