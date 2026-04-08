@@ -172,7 +172,7 @@ def main():
 	parser_week.set_defaults(func=this_week, subcommand='soon')
 
 	parser_upcoming = subparsers.add_parser('upcoming', help="Prints only upcoming exhibits that have been announced since its last invocation. Note, will print all upcoming on first invocation.")
-	parser_upcoming.set_defaults(func=upcoming)
+	parser_upcoming.set_defaults(func=upcoming, subcommand='upcoming')
 
 	args = parser.parse_args()
 
