@@ -6,7 +6,9 @@ CLI to track Smithsonian exhibits
 You must have Python3 installed on your computer. For macOS, you can use the system built-in
 `python3` and `pip3`.
 
-Install the necessary libraries: `pip install playwright playwright-stealth beautifulsoup4` 
+Install the necessary libraries: `pip install playwright playwright-stealth beautifulsoup4`
+
+To use the notifications capability, ensure you have [Ntfy]'s app downloaded to your smartphone.
 
 ## Basic Usage
 
@@ -23,8 +25,14 @@ runs so it won't tell you about them again.
 
 ## Take it Further: Automated with Notifications
 
-### Cron job
+### Schedule the Script
 **TODO**
 
 ### Notifications
-**TODO**
+In the Ntfy app, add a new subscribed topic. For a free account, anyone can send any message to your topic
+so do something unique that others won't think to use.
+
+Once you have your topic set up, run `python3 castle.py configure` to set your topic name (you don't need to include the
+ntfy.sh URL).
+
+Now, any time you run `soon` or `upcoming`, you will get push alerts for closing/starting exhibits as well as any newly announced upcoming exhibits.

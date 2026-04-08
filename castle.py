@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 import sys
 import time
 import json
+import requests
 import os
 	
 class Museum:
@@ -143,10 +144,13 @@ def upcoming(museums: list):
 		new = [e for e in museum.future_exhibits if e.name not in known.get(museum.name, [])] if museum.future_exhibits else []
 		if new:
 			print(museum.name)
+			topic = load_config().get("notification_topic")
 			for e in new:
 				from_str = e.from_date.strftime("%B %d, %Y") if isinstance(e.from_date, datetime) else e.from_date
 				to_str = e.to_date.strftime("%B %d, %Y") if isinstance(e.to_date, datetime) else e.to_date
 				print(f"  {e.name} ({from_str} - {to_str})")
+				if topic:
+					requests.post(f"https://ntfy.sh/{topic}", data=f"{museum.name}: {e.name} ({from_str} - {to_str})".encode(encoding='utf-8'))
 
 	# Update cache: only overwrite values for museums checked this run
 	os.makedirs(os.path.dirname(UPCOMING_CACHE), exist_ok=True)
@@ -169,13 +173,15 @@ def this_week(museums: list, days):
 				pass #TODO: Add logging for the except case when a museum returns no results
 				
 	print("OPENING THIS WEEK")
-	
+	topic = load_config().get("notification_topic")
 	for museum in museums:
 		if museum.check:
 			print(f"{museum}:")
 			for exhibit in museum.future_exhibits:
 				if isinstance(exhibit.from_date, datetime) and is_within_period(exhibit.from_date, days):
 					print(f"{exhibit.name} starts on{exhibit.from_date: %B %d, %Y}")
+					if topic:
+						requests.post(f"https://ntfy.sh/{topic}", data=f"{museum.name}: {exhibit.name} starts on{exhibit.from_date: %B %d, %Y}".encode(encoding='utf-8'))
 	
 	print("CLOSING THIS WEEK")
 	for museum in museums:
@@ -183,7 +189,9 @@ def this_week(museums: list, days):
 			print(f"{museum}:")
 			for exhibit in museum.current_exhibits:
 				if isinstance(exhibit.to_date, datetime) and is_within_period(exhibit.to_date, days):
-					print(f"{exhibit.name} closes on{exhibit.to_date: %B %d, %UY}")
+					print(f"{exhibit.name} closes on{exhibit.to_date: %B %d, %Y}")
+					if topic:
+						requests.post(f"https://ntfy.sh/{topic}", data=f"{museum.name}: {exhibit.name} closes on{exhibit.to_date: %B %d, %Y}".encode(encoding='utf-8'))
 
 
 def main():
@@ -198,7 +206,7 @@ def main():
 	parser_upcoming = subparsers.add_parser('upcoming', help="Prints only upcoming exhibits that have been announced since its last invocation. Note, will print all upcoming on first invocation.")
 	parser_upcoming.set_defaults(func=upcoming, subcommand='upcoming')
 
-	parser_configure = subparsers.add_parser('configure', help="Interactively configure CastleWatcher settings.")
+	parser_configure = subparsers.add_parser('configure', help="Interactively configure Castle settings.")
 	parser_configure.set_defaults(func=configure, subcommand='configure')
 
 	args = parser.parse_args()
