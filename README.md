@@ -45,4 +45,6 @@ launchctl load ~/Library/LaunchAgents/com.castlewatcher.upcoming.plist
 The files are specified to run every Monday at noon, unless you change those values. To 
 ensure your Mac is awake at that time, run `sudo pmset repeat wake M 11:59:00` on your Terminal.
 
+#### Windows
+**TODO**
 
