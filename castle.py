@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 from playwright_stealth.stealth import Stealth
 from bs4 import BeautifulSoup
 import argparse
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import sys
 import time
 import json
@@ -17,10 +17,10 @@ class Museum:
 		self.future_exhibits = []
 		
 	def add_current_exhibits(self, exhibits):
-		self.current_exhibits.append(exhibits)
+		self.current_exhibits.extend(exhibits)
 		
 	def add_future_exhibits(self, exhibits):
-		self.future_exhibits.append(exhibits)
+		self.future_exhibits.extend(exhibits)
 		
 	def __str__(self):
 		return f"{self.name}"
@@ -38,6 +38,7 @@ class Exhibit:
 		return str(self)
 	
 def is_valid_date(date_str: str) -> bool:
+	
 	try:
 		datetime.strptime(date_str, "%B %d, %Y")
 		return True
@@ -51,7 +52,7 @@ def query_museum_exhibits(museum_uuid, future: bool) -> list: #TODO: Convert to 
 		
 		upcoming = "/upcoming" if future else ""
 		page.goto(f'https://www.si.edu/exhibitions{upcoming}?edan_fq[0]=p.event.location.extended.location_id:"p1b-1474716020541-{museum_uuid}-0"')
-		page.locator(".c-exhibition-teaser__inner-wrap").first.wait_for(timeout=30000)
+		page.locator(".c-exhibition-teaser__inner-wrap").first.wait_for(timeout=15000)
 		soup = BeautifulSoup(page.content(), "html.parser")
 		browser.close()
 		
@@ -77,22 +78,22 @@ def setup_museums() -> list:
 	# TODO: Incorporate configuration to denylist some museums for checking
 	# I believe American Woman and American Latino exhibits show up under the museum physically hosting them.
 	return [Museum("National Air and Space Museum", 1475754763122),
-	Museum("National Air and Space Udvar-Hazy Center", 1475754669108),
-	Museum("Hirshhorn Art Museum", 1475754534442),
-	Museum("Smithsonian Castle", 1475756936235),
-	Museum("National Museum of African Art", 1475755005223),
-	Museum("Arthur M. Sackler Gallery (Asian Art)", 1475754368943),
-	Museum("Freer Gallery of Art (Asian Art)", 1475754256192),
-	Museum("African American History and Culture Museum", 1475754916881),
-	Museum("Natural History Museum", 1475755442781),
-	Museum("American History Museum", 1475755303891),
-	Museum("American Art Museum", 1475756550988),
-	Museum("National Portrait Gallery", 1475755699216),
-	Museum("American Indian Museum (DC)", 1475755580110),
-	Museum("Renwick Gallery", 1475756433913),
-	Museum("Postal Museum", 1475755828442),
-	Museum("National Zoo", 1475756003109),
-	Museum("Anacostia Community Museum", 1475753666790),
+# 	Museum("National Air and Space Udvar-Hazy Center", 1475754669108),
+# 	Museum("Hirshhorn Art Museum", 1475754534442),
+# 	Museum("Smithsonian Castle", 1475756936235),
+# 	Museum("National Museum of African Art", 1475755005223),
+# 	Museum("Arthur M. Sackler Gallery (Asian Art)", 1475754368943),
+# 	Museum("Freer Gallery of Art (Asian Art)", 1475754256192),
+# 	Museum("African American History and Culture Museum", 1475754916881),
+# 	Museum("Natural History Museum", 1475755442781),
+# 	Museum("American History Museum", 1475755303891),
+# 	Museum("American Art Museum", 1475756550988),
+# 	Museum("National Portrait Gallery", 1475755699216),
+# 	Museum("American Indian Museum (DC)", 1475755580110),
+# 	Museum("Renwick Gallery", 1475756433913),
+# 	Museum("Postal Museum", 1475755828442),
+# 	Museum("National Zoo", 1475756003109),
+# 	Museum("Anacostia Community Museum", 1475753666790),
 	Museum("Smithsonian Gardens", 1475756802542)]
 	
 UPCOMING_CACHE = os.path.expanduser("~/.local/share/castle/upcoming.json")
@@ -115,7 +116,7 @@ def upcoming(museums: list):
 			
 	# Alert on new exhibits
 	for museum in museums:
-		new = [e for e in museum.future_exhibits[0] if e.name not in known.get(museum.name, [])] if museum.future_exhibits else []
+		new = [e for e in museum.future_exhibits if e.name not in known.get(museum.name, [])] if museum.future_exhibits else []
 		if new:
 			print(museum.name)
 			for e in new:
@@ -125,12 +126,12 @@ def upcoming(museums: list):
 
 	# Update cache: only overwrite values for museums checked this run
 	os.makedirs(os.path.dirname(UPCOMING_CACHE), exist_ok=True)
-	known.update({m.name: [e.name for e in m.future_exhibits[0]] for m in museums if m.future_exhibits})
+	known.update({m.name: [e.name for e in m.future_exhibits] for m in museums if m.future_exhibits})
 	with open(UPCOMING_CACHE, "w") as f:
 		json.dump(known, f, indent=2)
 				
 def is_within_period(target_date, days):
-	today = date.today()
+	today = datetime.now()
 	return today <= target_date <= today + timedelta(days=days)
 
 def this_week(museums: list, days):
@@ -149,18 +150,16 @@ def this_week(museums: list, days):
 		if museum.check:
 			print(f"{museum}:")
 			for exhibit in museum.future_exhibits:
-				if is_within_period(exhibit.from_date, days):
-					print(f"{exhibit.name} starts on {exhibit.from_date}")
+				if isinstance(exhibit.from_date, datetime) and is_within_period(exhibit.from_date, days):
+					print(f"{exhibit.name} starts on{exhibit.from_date: %B %d, %Y}")
 	
 	print("CLOSING THIS WEEK")
 	for museum in museums:
 		if museum.check:
 			print(f"{museum}:")
-			for exhibit in museum.future_exhibits:
-				if exhibit.to_date == "Indefinitely" or exhibit.to_date == "Permanent":
-					pass
-				if is_within_period(exhibit.to_date, days):
-					print(f"{exhibit.name} closes on {exhibit.to_date}")
+			for exhibit in museum.current_exhibits:
+				if isinstance(exhibit.to_date, datetime) and is_within_period(exhibit.to_date, days):
+					print(f"{exhibit.name} closes on{exhibit.to_date: %B %d, %UY}")
 
 
 def main():
