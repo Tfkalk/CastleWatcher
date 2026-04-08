@@ -99,6 +99,28 @@ def setup_museums() -> list:
 	Museum("American Indian Museum (NYC)", 1475756154358, False)]
 	
 UPCOMING_CACHE = os.path.expanduser("~/.local/share/castle/upcoming.json")
+CONFIG_FILE = os.path.expanduser("~/.config/castle/config.json")
+
+def load_config() -> dict:
+	if os.path.exists(CONFIG_FILE):
+		with open(CONFIG_FILE) as f:
+			return json.load(f)
+	return {}
+
+def save_config(config: dict):
+	os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+	with open(CONFIG_FILE, "w") as f:
+		json.dump(config, f, indent=2)
+
+def configure():
+	config = load_config()
+	settings = ["notification_topic"]
+	for key in settings:
+		current = config.get(key, "")
+		value = input(f"{key} [{current}]: ").strip()
+		if value:
+			config[key] = value
+	save_config(config)
 
 def upcoming(museums: list):
 	for museum in museums:
@@ -176,14 +198,17 @@ def main():
 	parser_upcoming = subparsers.add_parser('upcoming', help="Prints only upcoming exhibits that have been announced since its last invocation. Note, will print all upcoming on first invocation.")
 	parser_upcoming.set_defaults(func=upcoming, subcommand='upcoming')
 
+	parser_configure = subparsers.add_parser('configure', help="Interactively configure CastleWatcher settings.")
+	parser_configure.set_defaults(func=configure, subcommand='configure')
+
 	args = parser.parse_args()
 
-	museums = setup_museums()
-
-	if args.subcommand == 'soon':
-		args.func(museums, args.days)
+	if args.subcommand == 'configure':
+		args.func()
+	elif args.subcommand == 'soon':
+		args.func(setup_museums(), args.days)
 	else:
-		args.func(museums)
+		args.func(setup_museums())
 
 if __name__ == "__main__":
 	sys.exit(main())
