@@ -25,9 +25,6 @@ runs so it won't tell you about them again.
 
 ## Take it Further: Automated with Notifications
 
-### Schedule the Script
-**TODO**
-
 ### Notifications
 In the Ntfy app, add a new subscribed topic. For a free account, anyone can send any message to your topic
 so do something unique that others won't think to use.
@@ -36,3 +33,16 @@ Once you have your topic set up, run `python3 castle.py configure` to set your t
 ntfy.sh URL).
 
 Now, any time you run `soon` or `upcoming`, you will get push alerts for closing/starting exhibits as well as any newly announced upcoming exhibits.
+
+### Schedule the Script
+#### macOS
+There are plist files in this repo to schedule the `soon` and `upcoming` commands. Correct the proper placeholder values and save them to `~/Library/LaunchAgents/`.
+You'll then need to load them using `launchctl` in the Terminal app:
+```
+launchctl load ~/Library/LaunchAgents/com.castlewatcher.soon.plist
+launchctl load ~/Library/LaunchAgents/com.castlewatcher.upcoming.plist
+```
+The files are specified to run every Monday at noon, unless you change those values. To 
+ensure your Mac is awake at that time, run `sudo pmset repeat wake M 11:59:00` on your Terminal.
+
+
