@@ -23,6 +23,9 @@ runs so it won't tell you about them again.
 
 **Note** On your first run, it will alert you to all upcoming exhibits for a given museum.
 
+### Museum Configuration
+**Coming soon**: The ability to specify what Smithsonians you care about (including enabling NYC museums).
+
 ## Take it Further: Automated with Notifications
 
 ### Notifications
