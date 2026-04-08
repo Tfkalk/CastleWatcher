@@ -94,7 +94,9 @@ def setup_museums() -> list:
 	Museum("Postal Museum", 1475755828442),
 	Museum("National Zoo", 1475756003109),
 	Museum("Anacostia Community Museum", 1475753666790),
-	Museum("Smithsonian Gardens", 1475756802542)]
+	Museum("Smithsonian Gardens", 1475756802542),
+	Museum("Cooper Hewitt Design Museum (NYC)", 1475754119731, False),
+	Museum("American Indian Museum (NYC)", 1475756154358, False)]
 	
 UPCOMING_CACHE = os.path.expanduser("~/.local/share/castle/upcoming.json")
 
