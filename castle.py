@@ -78,22 +78,22 @@ def setup_museums() -> list:
 	# TODO: Incorporate configuration to denylist some museums for checking
 	# I believe American Woman and American Latino exhibits show up under the museum physically hosting them.
 	return [Museum("National Air and Space Museum", 1475754763122),
-# 	Museum("National Air and Space Udvar-Hazy Center", 1475754669108),
-# 	Museum("Hirshhorn Art Museum", 1475754534442),
-# 	Museum("Smithsonian Castle", 1475756936235),
-# 	Museum("National Museum of African Art", 1475755005223),
-# 	Museum("Arthur M. Sackler Gallery (Asian Art)", 1475754368943),
-# 	Museum("Freer Gallery of Art (Asian Art)", 1475754256192),
-# 	Museum("African American History and Culture Museum", 1475754916881),
-# 	Museum("Natural History Museum", 1475755442781),
-# 	Museum("American History Museum", 1475755303891),
-# 	Museum("American Art Museum", 1475756550988),
-# 	Museum("National Portrait Gallery", 1475755699216),
-# 	Museum("American Indian Museum (DC)", 1475755580110),
-# 	Museum("Renwick Gallery", 1475756433913),
-# 	Museum("Postal Museum", 1475755828442),
-# 	Museum("National Zoo", 1475756003109),
-# 	Museum("Anacostia Community Museum", 1475753666790),
+	Museum("National Air and Space Udvar-Hazy Center", 1475754669108),
+	Museum("Hirshhorn Art Museum", 1475754534442),
+	Museum("Smithsonian Castle", 1475756936235),
+	Museum("National Museum of African Art", 1475755005223),
+	Museum("Arthur M. Sackler Gallery (Asian Art)", 1475754368943),
+	Museum("Freer Gallery of Art (Asian Art)", 1475754256192),
+	Museum("African American History and Culture Museum", 1475754916881),
+	Museum("Natural History Museum", 1475755442781),
+	Museum("American History Museum", 1475755303891),
+	Museum("American Art Museum", 1475756550988),
+	Museum("National Portrait Gallery", 1475755699216),
+	Museum("American Indian Museum (DC)", 1475755580110),
+	Museum("Renwick Gallery", 1475756433913),
+	Museum("Postal Museum", 1475755828442),
+	Museum("National Zoo", 1475756003109),
+	Museum("Anacostia Community Museum", 1475753666790),
 	Museum("Smithsonian Gardens", 1475756802542)]
 	
 UPCOMING_CACHE = os.path.expanduser("~/.local/share/castle/upcoming.json")
@@ -104,8 +104,8 @@ def upcoming(museums: list):
 			try:
 				museum.add_future_exhibits(query_museum_exhibits(museum.uuid, True))
 				time.sleep(1)
-			except Exception as e:
-				print(f"  {museum.name}: {e}")
+			except:
+				pass
 
 	
 	# Load previously known exhibits
