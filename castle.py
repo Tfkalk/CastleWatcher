@@ -167,10 +167,14 @@ def this_week(museums: list, days):
 		if museum.check:
 			try:
 				museum.add_future_exhibits(query_museum_exhibits(museum.uuid, True))
-				museum.add_current_exhibits(query_museum_exhibits(museum.uuid, False))
 				time.sleep(1)
 			except:
-				pass #TODO: Add logging for the except case when a museum returns no results
+				pass #TODO: Add logging for the except case when a museum returns an error
+			try:
+				museum.add_current_exhibits(query_museum_exhibits(museum.uuid, False))
+			except:
+				pass
+
 				
 	print("OPENING THIS WEEK")
 	topic = load_config().get("notification_topic")
